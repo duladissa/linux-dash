@@ -6,18 +6,18 @@ var gutil         = require('gulp-util')
 var ngAnnotate    = require('gulp-ng-annotate')
 var templateCache = require('gulp-angular-templatecache')
 
-g.task('template-cache', function () {
-  return g.src('src/**/*.html')
+g.task('template-cache', () =>
+  g.src('src/**/*.html')
     .pipe(templateCache('templates.js', {
         module: 'linuxDash',
         standAlone: false,
         root: 'src/'
       }))
     .pipe(g.dest('temp/'))
-})
+)
 
-g.task('generate-js-dist', ['template-cache'], function () {
-  return g.src([
+g.task('generate-js-dist', g.series('template-cache', () =>
+  g.src([
     'node_modules/angular/angular.min.js',
     'node_modules/angular-route/angular-route.min.js',
     'node_modules/smoothie/smoothie.js',
@@ -27,26 +27,26 @@ g.task('generate-js-dist', ['template-cache'], function () {
   ])
   .pipe(concat('linuxDash.min.js'))
   .pipe(ngAnnotate())
-  // .pipe(uglify())
+  .pipe(uglify({mangle: false}))
   .on('error', gutil.log)
   .pipe(g.dest('app/'))
-})
+))
 
-g.task('generate-css-dist', function () {
-  return g.src([ 'src/**/*.css' ])
+g.task('generate-css-dist', () =>
+  g.src([ 'src/**/*.css' ])
     .pipe(cssmin())
     .pipe(concat('linuxDash.min.css'))
     .pipe(g.dest('app/'))
-})
+)
 
-g.task('build', [
+g.task('build', g.series(
   'generate-js-dist',
   'generate-css-dist'
-])
+))
 
 g.task('watch', function () {
-  g.watch('src/**/*.css', ['generate-css-dist'])
-  g.watch(['src/**/*.js', 'src/**/*.html'], ['generate-js-dist'])
+  g.watch('src/**/*.css', g.series('generate-css-dist'))
+  g.watch(['src/**/*.js', 'src/**/*.html'], g.series('generate-js-dist'))
 })
 
-g.task('default', ['build', 'watch'])
+g.task('default', g.series('build', 'watch'))
